@@ -59,3 +59,58 @@ class Value:
         for node in reversed(topo):
             node._backward()
 
+    def __pow__(self, k):
+        assert isinstance(k, (int, float))
+        out = Value(self.data ** k, (self,), f"**{k}")
+
+        def _backward():
+            self.grad += k * self.data ** (k - 1) * out.grad
+        out._backward = _backward
+        return out
+
+    def __neg__(self):
+        return self * -1
+
+    def __sub__(self, other):
+        return self + (-other)
+
+    def __truediv__(self, other):
+        return self * other ** -1
+
+    def __radd__(self, other):
+        return self + other
+
+    def __rmul__(self, other):
+        return self * other
+
+    def __rsub__(self, other):
+        return other + (-self)
+
+    def __rtruediv__(self, other):
+        return other * self ** -1
+
+    def exp(self):
+        e = math.exp(self.data)
+        out = Value(e, (self,), "exp")
+
+        def _backward():
+            self.grad += e * out.grad
+        out._backward = _backward
+        return out
+
+    def log(self):
+        out = Value(math.log(self.data), (self,), "log")
+
+        def _backward():
+            self.grad += (1 / self.data) * out.grad
+        out._backward = _backward
+        return out
+
+    def relu(self):
+        out = Value(self.data if self.data > 0 else 0.0, (self,), "relu")
+
+        def _backward():
+            self.grad += (1.0 if out.data > 0 else 0.0) * out.grad
+        out._backward = _backward
+        return out
+
