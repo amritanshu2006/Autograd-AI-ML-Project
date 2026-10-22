@@ -33,3 +33,26 @@ def check_grad(f, xs, eps=1e-5, tol=1e-6):
             f"gradient mismatch for input {i}: backward={a}, numerical={n}"
         )
 
+def check_model_grads(model, loss_fn, eps=1e-5, tol=1e-6):
+    """Check every parameter gradient of a model against central differences.
+
+    loss_fn() must build a fresh forward pass and return a scalar Value.
+    """
+    model.zero_grad()
+    loss = loss_fn()
+    loss.backward()
+    analytic = [p.grad for p in model.parameters()]
+
+    for i, p in enumerate(model.parameters()):
+        old = p.data
+        p.data = old + eps
+        hi = loss_fn().data
+        p.data = old - eps
+        lo = loss_fn().data
+        p.data = old
+        numeric = (hi - lo) / (2 * eps)
+        a = analytic[i]
+        scale = max(1.0, abs(a), abs(numeric))
+        assert abs(a - numeric) <= tol * scale, (
+            f"parameter {i}: backward={a}, numerical={numeric}"
+        )
