@@ -149,6 +149,17 @@ class Tensor:
         out._backward = _backward
         return out
 
+
+    def sigmoid(self):
+        x = self.data
+        e = np.exp(-np.abs(x))                       # exp of a non-positive number: it can never overflow
+        s = np.where(x >= 0, 1.0 / (1.0 + e), e / (1.0 + e))   # same value as 1/(1+exp(-x)), but stable for huge |x|
+        out = Tensor(s, (self,), "sigmoid")          # new node in the graph; self is its only parent
+        def _backward():
+            self.grad += s * (1.0 - s) * out.grad    # sigmoid'(x) = s * (1 - s), times the gradient coming from above
+        out._backward = _backward
+        return out
+
     def log(self):
         out = Tensor(np.log(self.data), (self,), "log")
 
